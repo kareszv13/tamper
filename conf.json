@@ -1,0 +1,7 @@
+{
+    "BaseLine" : 2150,
+    "Logger": true,
+    "BasicTimer": 5,
+    "MqttAddress": "lora.sparkon.io:1883",
+    "MqttTopic": "tamper"
+  }
