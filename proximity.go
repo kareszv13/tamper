@@ -16,11 +16,11 @@ import (
 )
 
 type Configuration struct {
-	BaseLine    int    `json:"basicVerbose"`
-	Logger      bool   `json:"basicLogger"`
-	BasicTimer  int    `json:"basicTimer"`
-	MqttAddress string `json:"mqttAddress"`
-	MqttTopic   string `json:"mqttTopic"`
+	BaseLine    int    `json:"BaseLine"`
+	Logger      bool   `json:"Logger"`
+	BasicTimer  int    `json:"BasicTimer"`
+	MqttAddress string `json:"MqttAddress"`
+	MqttTopic   string `json:"MqttTopic"`
 }
 
 var configuration Configuration
