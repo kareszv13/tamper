@@ -48,28 +48,33 @@ func proxiMeas(i2c *i2c.I2C, cli *client.Client) bool {
 	if configuration.Logger {
 		//fmt.Println(data1, prox1, prox2)
 		fmt.Println(proxiNum)
-
 	}
 	actualbol := false
 	if int(proxiNum) > configuration.BaseLine {
 		actualbol = true
 	}
-
 	if actualbol != beforebol {
-		user, err := user.Current()
+		host, err := os.Hostname()
+		var values map[string]string
+		values = make(map[string]string)
+		t := time.Now()
+		values["time"] = t.String()
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		str := "door close"
+		values["message"] = "door close"
 		if !actualbol && beforebol {
-			str = "door open!!!!44!!!!NÉGY!!"
+			values["message"] = "door open!!!!44!!!!NÉGY!!"
 		}
 		beforebol = actualbol
+
+		values["DeviceName"] = host
+
+		jsonString, _ := json.Marshal(values)
 		err = cli.Publish(&client.PublishOptions{
 			QoS:       mqtt.QoS0,
 			TopicName: []byte("log"),
-			Message:   []byte(user.Name + ":" + str),
+			Message:   []byte(jsonString),
 		})
 		if err != nil {
 			fmt.Println("ohooo")
@@ -97,6 +102,7 @@ func main() {
 	defer cli.Terminate()
 	user, err := user.Current()
 	host, err := os.Hostname()
+
 	fmt.Println(host)
 	// Connect to the MQTT Server.
 	err = cli.Connect(&client.ConnectOptions{
