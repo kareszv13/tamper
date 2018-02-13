@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"os/user"
 	"time"
 
-	i2c "github.com/d2r2/go-i2c"
+	"github.com/d2r2/go-i2c"
 	rpio "github.com/stianeikeland/go-rpio"
+	"github.com/yosssi/gmq/mqtt"
+	"github.com/yosssi/gmq/mqtt/client"
 )
 
 type Configuration struct {
@@ -20,6 +24,47 @@ type Configuration struct {
 }
 
 var configuration Configuration
+var beforebol bool
+var cli *client.Client
+
+func proxiMeas(i2c *i2c.I2C) bool {
+	data1, _ := i2c.ReadRegU8(0x80)
+
+	i2c.WriteRegU8(0x80, data1+8)
+	time.Sleep(time.Duration(100000) * time.Microsecond)
+
+	prox1, _ := i2c.ReadRegU8(0x87)
+	prox2, _ := i2c.ReadRegU8(0x88)
+	proxiNum := uint16(prox1)*256 + uint16(prox2)
+	if configuration.Logger {
+		fmt.Println(proxiNum)
+	}
+	actualbol := false
+	if int(proxiNum) > configuration.BaseLine {
+		actualbol = true
+	}
+
+	if actualbol != beforebol {
+		user, err := user.Current()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		str := "door close"
+		if !actualbol && beforebol {
+			str = "door open!!!!44!!!!NÉGY!!"
+		}
+		err = cli.Publish(&client.PublishOptions{
+			QoS:       mqtt.QoS0,
+			TopicName: []byte("log"),
+			Message:   []byte(user.Name + ":" + str),
+		})
+		if err != nil {
+			panic(err)
+		}
+	}
+	return actualbol
+}
 
 func main() {
 
@@ -27,6 +72,26 @@ func main() {
 	decoder := json.NewDecoder(bytes.NewBufferString(string(dat)))
 	fmt.Println(string(dat))
 	err := decoder.Decode(&configuration)
+
+	// Create an MQTT Client.
+	cli := client.New(&client.Options{
+		// Define the processing of the error handler.
+		ErrorHandler: func(err error) {
+			fmt.Println(err)
+		},
+	})
+	// Terminate the Client.
+	defer cli.Terminate()
+
+	// Connect to the MQTT Server.
+	err = cli.Connect(&client.ConnectOptions{
+		Network:  "tcp",
+		Address:  configuration.MqttAddress,
+		ClientID: []byte("rpi-client"),
+	})
+	if err != nil {
+		panic(err)
+	}
 
 	if err != nil {
 		fmt.Println("error:", err)
@@ -48,21 +113,29 @@ func main() {
 	pin := rpio.Pin(12)
 	pin.Output()
 
-	for {
-
-		data1, _ := i2c.ReadRegU8(0x80)
-
-		i2c.WriteRegU8(0x80, data1+8)
-		time.Sleep(time.Duration(100000) * time.Microsecond)
-
-		prox1, _ := i2c.ReadRegU8(0x87)
-		prox2, _ := i2c.ReadRegU8(0x88)
-		proxiNum := uint16(prox1)*256 + uint16(prox2)
-		fmt.Println(proxiNum)
-		if proxiNum > 2150 {
-			pin.High()
-		} else {
-			pin.Low()
+	if configuration.BasicTimer == 0 {
+		for {
+			if proxiMeas(i2c) {
+				pin.High()
+			} else {
+				pin.Low()
+			}
+			time.Sleep(time.Duration(100) * time.Millisecond)
+		}
+	} else {
+		meterTicker := time.NewTicker(time.Second * time.Duration(configuration.BasicTimer))
+		go func() {
+			for t := range meterTicker.C {
+				fmt.Println(t)
+				if proxiMeas(i2c) {
+					pin.High()
+				} else {
+					pin.Low()
+				}
+			}
+		}()
+		for {
+			time.Sleep(time.Duration(100) * time.Hour)
 		}
 	}
 
