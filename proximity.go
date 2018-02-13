@@ -115,7 +115,8 @@ func main() {
 
 	if configuration.BasicTimer == 0 {
 		for {
-			if proxiMeas(i2c, cli) {
+			bol := proxiMeas(i2c, cli)
+			if bol {
 				pin.High()
 			} else {
 				pin.Low()
@@ -127,7 +128,8 @@ func main() {
 		go func() {
 			for t := range meterTicker.C {
 				fmt.Println(t)
-				if proxiMeas(i2c, cli) {
+				bol := proxiMeas(i2c, cli)
+				if bol {
 					pin.High()
 				} else {
 					pin.Low()
