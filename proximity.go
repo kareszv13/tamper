@@ -104,6 +104,9 @@ func main() {
 	}
 	// Free I2C connection on exit
 	defer i2c.Close()
+	i2c.WriteRegU8(0x82, 0x7)
+	data, _ := i2c.ReadRegU8(0x83)
+	i2c.WriteRegU8(0x83, (data&0xC0)+15)
 
 	err = rpio.Open()
 	if err != nil {
