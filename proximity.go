@@ -64,6 +64,7 @@ func proxiMeas(i2c *i2c.I2C, cli *client.Client) bool {
 		if !actualbol && beforebol {
 			str = "door open!!!!44!!!!NÉGY!!"
 		}
+		beforebol = actualbol
 		err = cli.Publish(&client.PublishOptions{
 			QoS:       mqtt.QoS0,
 			TopicName: []byte("log"),
