@@ -29,7 +29,7 @@ var beforebol bool
 func proxiMeas(i2c *i2c.I2C, cli *client.Client) bool {
 	data1, _ := i2c.ReadRegU8(0x80)
 
-	i2c.WriteRegU8(0x80, data1+8)
+	i2c.WriteRegU8(0x80, (data1&0xE0)+8)
 	time.Sleep(time.Duration(10) * time.Millisecond)
 	for {
 		data1, _ := i2c.ReadRegU8(0x80)
