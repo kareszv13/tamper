@@ -30,13 +30,24 @@ func proxiMeas(i2c *i2c.I2C, cli *client.Client) bool {
 	data1, _ := i2c.ReadRegU8(0x80)
 
 	i2c.WriteRegU8(0x80, data1+8)
-	time.Sleep(time.Duration(100000) * time.Microsecond)
-
+	time.Sleep(time.Duration(10) * time.Millisecond)
+	for {
+		data1, _ := i2c.ReadRegU8(0x80)
+		if (data1 & 0x20) == 0x00 {
+			break
+		}
+		if configuration.Logger {
+			fmt.Println(data1)
+		}
+		time.Sleep(time.Duration(10) * time.Millisecond)
+	}
 	prox1, _ := i2c.ReadRegU8(0x87)
 	prox2, _ := i2c.ReadRegU8(0x88)
 	proxiNum := uint16(prox1)*256 + uint16(prox2)
 	if configuration.Logger {
+		fmt.Println(data1, prox1, prox2)
 		fmt.Println(proxiNum)
+
 	}
 	actualbol := false
 	if int(proxiNum) > configuration.BaseLine {
