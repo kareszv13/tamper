@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/user"
 	"time"
 
@@ -95,6 +96,8 @@ func main() {
 	// Terminate the Client.
 	defer cli.Terminate()
 	user, err := user.Current()
+	host, err := os.Hostname()
+	fmt.Println(host)
 	// Connect to the MQTT Server.
 	err = cli.Connect(&client.ConnectOptions{
 		Network:  "tcp",
