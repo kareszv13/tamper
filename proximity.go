@@ -33,7 +33,7 @@ func proxiMeas(i2c *i2c.I2C, cli *client.Client) bool {
 	time.Sleep(time.Duration(10) * time.Millisecond)
 	for {
 		data1, _ := i2c.ReadRegU8(0x80)
-		if (data1 & 0x20) == 0x00 {
+		if (data1 & 0x20) == 0x20 {
 			break
 		}
 		if configuration.Logger {
@@ -45,7 +45,7 @@ func proxiMeas(i2c *i2c.I2C, cli *client.Client) bool {
 	prox2, _ := i2c.ReadRegU8(0x88)
 	proxiNum := uint16(prox1)*256 + uint16(prox2)
 	if configuration.Logger {
-		fmt.Println(data1, prox1, prox2)
+		//fmt.Println(data1, prox1, prox2)
 		fmt.Println(proxiNum)
 
 	}
@@ -118,6 +118,8 @@ func main() {
 	i2c.WriteRegU8(0x82, 0x7)
 	data, _ := i2c.ReadRegU8(0x83)
 	i2c.WriteRegU8(0x83, (data&0xC0)+15)
+	data1, _ := i2c.ReadRegU8(0x80)
+	i2c.WriteRegU8(0x80, (data1 & 0xE0))
 
 	err = rpio.Open()
 	if err != nil {
@@ -135,7 +137,7 @@ func main() {
 			} else {
 				pin.Low()
 			}
-			time.Sleep(time.Duration(100) * time.Millisecond)
+			time.Sleep(time.Duration(10) * time.Millisecond)
 		}
 	} else {
 		meterTicker := time.NewTicker(time.Second * time.Duration(configuration.BasicTimer))
