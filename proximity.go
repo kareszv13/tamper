@@ -9,7 +9,7 @@ import (
 	"os/user"
 	"time"
 
-	"github.com/d2r2/go-i2c"
+	i2c "github.com/d2r2/go-i2c"
 	rpio "github.com/stianeikeland/go-rpio"
 	"github.com/yosssi/gmq/mqtt"
 	"github.com/yosssi/gmq/mqtt/client"
@@ -25,9 +25,8 @@ type Configuration struct {
 
 var configuration Configuration
 var beforebol bool
-var cli *client.Client
 
-func proxiMeas(i2c *i2c.I2C) bool {
+func proxiMeas(i2c *i2c.I2C, cli *client.Client) bool {
 	data1, _ := i2c.ReadRegU8(0x80)
 
 	i2c.WriteRegU8(0x80, data1+8)
@@ -60,6 +59,7 @@ func proxiMeas(i2c *i2c.I2C) bool {
 			Message:   []byte(user.Name + ":" + str),
 		})
 		if err != nil {
+			fmt.Println("ohooo")
 			panic(err)
 		}
 	}
@@ -82,12 +82,12 @@ func main() {
 	})
 	// Terminate the Client.
 	defer cli.Terminate()
-
+	user, err := user.Current()
 	// Connect to the MQTT Server.
 	err = cli.Connect(&client.ConnectOptions{
 		Network:  "tcp",
 		Address:  configuration.MqttAddress,
-		ClientID: []byte("rpi-client"),
+		ClientID: []byte(user.Name + "rpitamper"),
 	})
 	if err != nil {
 		panic(err)
@@ -115,7 +115,7 @@ func main() {
 
 	if configuration.BasicTimer == 0 {
 		for {
-			if proxiMeas(i2c) {
+			if proxiMeas(i2c, cli) {
 				pin.High()
 			} else {
 				pin.Low()
@@ -127,7 +127,7 @@ func main() {
 		go func() {
 			for t := range meterTicker.C {
 				fmt.Println(t)
-				if proxiMeas(i2c) {
+				if proxiMeas(i2c, cli) {
 					pin.High()
 				} else {
 					pin.Low()
